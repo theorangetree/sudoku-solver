@@ -2,6 +2,15 @@
 """
 Basic Sukdoku solver that uses recursion.
 
+Solving strategies:
+    - elim_row(): eliminate possibilities based on existing numbers in the row
+    - elim_col(): eliminate possibilities based on existing numbers in the column
+    - elim_3x3(): eliminate possibilities based on existing numbers in the 3x3
+    - fill_board(): input a value in a cell if there is only one remaining possibility for that cell
+
+Class: SudokuBoard()
+    Requires a Sudoku board to be passed as an argument at initiation
+    This class contains utility methods and the solve() method, which solves self.board
 """
 
 # Import modules
@@ -122,7 +131,16 @@ def fill_board(board):
 # Create and solve the sudoku board
 class SukokuBoard():
     """ Create a sudoku board with utility and solver methods
-    
+
+    Utility functions:
+        - print_board()
+        - count_possibilities()
+        - check_error()
+        - check_complete()
+    Solving functions:
+        - apply_strategies() - solve using the deductive strategies Sudoku until stuck
+        - recursive_solve() - use trial and error to guess through possibilities
+        - solve() - method that calls the other solving functions
     """
     def __init__(self, board = []):
         self.board = board # board with 9 rows of 9 cells, each containing a set of 9 possibilities
