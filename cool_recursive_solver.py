@@ -9,9 +9,7 @@ Main difference from  basic Sudoku solver is that the board is represented in 3 
 In the full solver, this enables more complex Sudoku strategies to be used
 
 Solving strategies:
-    - elim_row(): eliminate possibilities based on existing numbers in the row
-    - elim_col(): eliminate possibilities based on existing numbers in the column
-    - elim_3x3(): eliminate possibilities based on existing numbers in the 3x3
+    - elim_placed_nums(): eliminate possibilities based on existing numbers in the row/column/region based on representation passed
     - fill_board(): input a value in a cell if there is only one remaining possibility for that cell
 
 Class: SudokuBoard()
@@ -76,10 +74,10 @@ easyBoard1 = [[7, 1, 0, 0, 0, 0, 8, 0, 5],
 # Functions for eliminating possibilities
 # A blank cell starts with a set of possible numbers: 1 to 9
 
-def elim_row(board):
-    """Eliminate possibilities that have already occured in the same row"""
+def elim_placed_nums(board_repr): # Single board of any representation
+    """Eliminate possibilities that have already occured in the same row/column/region depending on representation passed"""
 
-    for row in board.rows:
+    for row in board_repr:
         eliminate = set([number for number in row if isinstance(number, int)])
 
         for col in row:
@@ -87,32 +85,6 @@ def elim_row(board):
                 col -= eliminate
                 # check for an error
                 if len(col) == 0:
-                    return False
-
-def elim_col(board):
-    """Eliminate possibilities that have already occured in the same column"""
-
-    for col in board.cols:
-        eliminate = set([number for number in col if isinstance(number, int)])
-
-        for row in col:
-            if isinstance(row, set):
-                row -= eliminate
-                # check for an error
-                if len(row) == 0:
-                    return False
-
-def elim_3x3(board):
-    """Eliminate possibilities that have already occured in the same 3x3 square"""
-
-    for region_3x3 in board.regions:
-        eliminate = set([number for number in region_3x3 if isinstance(number, int)])
-
-        for cell in region_3x3:
-            if isinstance(cell, set):
-                cell -= eliminate
-                # check for an error
-                if len(cell) == 0:
                     return False
 
 def fill_board(board):
@@ -262,9 +234,9 @@ class SudokuPuzzle():
 
         while True:
             # Apply following Sudoku strategies functions for eliminating possibilities
-            elim_row(board)
-            elim_col(board)
-            elim_3x3(board)
+            elim_placed_nums(board.rows)
+            elim_placed_nums(board.cols)
+            elim_placed_nums(board.regions)
 
             fill_board(board)
             self.total_loops += 1
