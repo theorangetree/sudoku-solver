@@ -18,6 +18,26 @@ Class: SudokuBoard()
 import copy, math, itertools, numpy
 
 # Sample Sudoku boards
+slowestBoard = [[0, 0, 0, 0, 0, 6, 0, 0, 0],
+                [0, 5, 9, 0, 0, 0, 0, 0, 8],
+                [2, 0, 0, 0, 0, 8, 0, 0, 0],
+                [0, 4, 5, 0, 0, 0, 0, 0, 0],
+                [0, 0, 3, 0, 0, 0, 0, 0, 0],
+                [0, 0, 6, 0, 0, 3, 0, 5, 4],
+                [0, 0, 0, 3, 2, 5, 0, 0, 6],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0]]
+
+ArtoHardestBoard = [[0, 0, 5, 3, 0, 0, 0, 0, 0],
+                    [8, 0, 0, 0, 0, 0, 0, 2, 0],
+                    [0, 7, 0, 0, 1, 0, 5, 0, 0],
+                    [4, 0, 0, 0, 0, 5, 3, 0, 0],
+                    [0, 1, 0, 0, 7, 0, 0, 0, 6],
+                    [0, 0, 3, 2, 0, 0, 0, 8, 0],
+                    [0, 6, 0, 5, 0, 0, 0, 0, 9],
+                    [0, 0, 4, 0, 0, 0, 0, 3, 0],
+                    [0, 0, 0, 0, 0, 9, 7, 0, 0]]
+
 worldsHardestBoard = [[8, 0, 0, 0, 0, 0, 0, 0, 0],
                       [0, 0, 3, 6, 0, 0, 0, 0, 0],
                       [0, 7, 0, 0, 9, 0, 2, 0, 0],
@@ -71,175 +91,12 @@ easyBoard1 = [[7, 1, 0, 0, 0, 0, 8, 0, 5],
 # Functions for eliminating possibilities
 # Remember, a blank board is 9 lists of 9 sets, each containing the possible numbers 1 to 9
 
-def fillRow(board):
-# fill in spaces by looking at rows
-	print("fillRow")
-
-	boxWing   = {}
-	swordfish = {}
-
-	for y in range(9):
-
-		# find the possible locations for numbers missing from a row.
-		# locations[0] lists all possible locations along the row (left to right) for the number 1.
-		locations = [''] * 9											# locations = ['index positions of 1', 'index positions of 2', ...]
-		for x in range(9):
-			if type(board[y][x]) == list:
-				for z in board[y][x]:
-					locations[int(z) - 1] += str(x)						# str(x) is a possible column index
-			else:
-				continue;
-		print("locations")
-		print(locations)
-
-		# eliminate already inputted numbers from the locations list
-		for x in range(9):
-			if type(board[y][x]) == str:
-				locations[int(board[y][x]) - 1] = ''
-			else:
-				continue;
-
-		# COMPLEX STUFF!
-		check2 = {}														# key = possible locations, value = digit candidates for the locations
-		# identify numbers with 2 possible locations
-		for i in range(9):
-			if len(locations[i]) == 2:
-				check2.setdefault(locations[i], '')
-				check2[locations[i]] += str(i + 1)
-		# find pairs of 2 spaces to pseudo-fill
-		for k in check2.keys():
-			if len(check2[k]) == 2:
-				for i in range(2):
-					for num in board[y][int(k[i])]:
-						if num not in check2[k]:
-							board[y][int(k[i])].remove(num)
-			# if the pair exists in the same 3x3 square, remove them as possibilities from the rest of the 3x3 square
-			if (int(k[0]) // 3) == (int(k[1]) // 3):
-				for i in range(9):
-					if i != (int(k[0]) % 3 + (y % 3) * 3) and i != (int(k[1]) % 3 + (y % 3) * 3):
-						if type(board[(y // 3) * 3 + i // 3][(int(k[0]) // 3) * 3 + i % 3]) == list:
-							for j in range(len(check2[k])):
-								try:
-									board[(y // 3) * 3 + i // 3][(int(k[0]) // 3) * 3 + i % 3].remove(check2[k][j])
-								except:
-									continue;
-
-		print("check2")
-		print(check2)
-		
-		# identify 2 spaces with 2 of the same possible numbers
-		#http://www.sudokudragon.com/sudokustrategy.htm
-		#http://www.sudokudragon.com/advancedstrategy.htm
-		#http://www.websudoku.com/?level=4 Evil Puzzle 391,101,148
-		
-		# psuedo-fill 3 uncertain squares. This can be achieved in 4 ways:
-		# 	1) 3 3 length locations in the same spot
-		#	2) 2 3 length, 1 2 length locations in a triangle
-		#	3) 1 3 length, 2 2 length locations in a triangle
-		#	4) 0 3 length, 3 2 length locations in a triangle
-		def psuedoFill3(key):
-			for i in range(3):
-				for num in board[y][int(key[i])]:
-					# remove extra possibilities
-					if num not in check3[key]:
-						board[y][int(key[i])].remove(num)
-
-		check3  = {}													# key = possible locations, value = digit candidates for the locations
-		triFill = []
-		for i in range(9):
-			if len(locations[i]) == 3:
-				check3.setdefault(locations[i], '')
-				check3[locations[i]] += str(i + 1)
-			else:
-				continue;
-
-		# Psuedo-fill 3 in the 4 different ways
-		for k in check3.keys():
-			if len(check3[k]) == 3:
-				psuedoFill3(k)
-
-			elif len(check3[k]) == 2:
-				for two in check2.keys():
-					if two in k:
-						for digit in check2[two]:
-							if digit not in check3[k]:
-								check3[k] += digit
-						psuedoFill3(k)
-
-			elif len(check3[k]) == 1:
-				for two in check2.keys():
-					if two in k:
-						for digit in check2[two]:
-							if digit not in check3[k]:
-								check3[k] += digit
-						if len(check3[k]) == 3:
-							psuedoFill3(k)
-
-			elif len(check2) >= 3:
-				for h in range(len(check2)):
-					for i in range(len(check2)):
-						for j in range(len(check2)):
-							new3Key   = ''
-							new3Value = ''
-							if h != i and h != j and i != j and			\
-							h[0] in i and h[1] in j and					\
-							(i[0] in j or i[1] in j):
-								def adjoin3(w,x,y,z):
-									temp = ''
-									temp += w + x + y
-									for char in temp:
-										if char not in z:
-											new3Key += char
-								adjoin3(h, i, j, new3Key)
-								adjoin3(check2[h], check2[i], check2[j], new3Value)
-								check3.setdefault(new3Key, new3Value)
-								psuedoFill3(new3Key)
-
-			else:
-				print("Some sort of error in psuedo-fill 3 for fillRow")
-
-		# fill spaces that contain the only possible location for a number in the row
-		for i in range(9):
-			if len(locations[i]) == 1:
-				board[y][int(locations[i])] = str(i + 1)
-			else:
-				continue;
-
-def old_hidden_twins(board):
-    """Identify twins (two numbers that must go in two cells) and remove possibilties:
-        - Other possibilities in the twin cells
-        - Twin possibilities from other cells in same row, column, and/or region
-    """
-    
-
-    # Hidden twins
-    for y, row in enumerate(board.rows):
-        # Track locations in the row where each unsolved integer could potentially go
-        locations = {num:set() for num in range(1,10)}
-        for x, cell in enumerate(row):
-            if isinstance(cell, set):
-                for possibility in cell:
-                    locations[possibility].add(x)
-
-        # Check if a number shares its two possible locations with another number
-        for num, locs in locations.items():
-            if len(locs) == 2:
-                # Check if there is another number with the same locations
-                count = 0
-                for value in locations.values():
-                    if locs == value:
-                        count +=1
-                if count == 2:
-                    for cell in row:
-                        if isinstance(cell, set) and locations[num] != locs:
-                            cell.discard(nums)
-
 # TO DO:
 # Sub group exclusion (remove from other 3x3 grid spaced if it has to go in a row)
-# DONE Twins (remove other posibilities in the twin square, and the twins from other squares in row/col/3x3)
+# DONE & DELETED Twins (remove other posibilities in the twin square, and the twins from other squares in row/col/3x3)
     # Hidden twins didn't seem to make a difference but naked twins looks good
-# DONE Triplets
-# Same as twins but for n-number chains
+# DONE & DELETED Triplets
+# DONE n-number chains
 # X-Wing (aka. box) for a box where two of the same numbers must be on opposite corners of an X-Wing
     # Identified by finding two rows where a number has pairs on top of each other (same for columns)
 # Swordfish
@@ -313,77 +170,89 @@ def fill_only_location(board):
             if len(locs) == 1:
                 board.update( ROWS_TO_REGIONS[ (r, next(iter(locs))) ][1] , ROWS_TO_REGIONS[ (r, next(iter(locs))) ][0] , num )
 
-def elim_twins(board_repr):
-    """Identify twins (two numbers that must go in two cells) and remove possibilties:
-        - i.e. remove twin possibilities from other cells in same row, column, or region
-    """
-    
-    # Naked twins
-    for row in board_repr:
-        for pair in row:
-            if isinstance(pair, set):
-                # Identify twins
-                if len(pair) == 2 and row.count(pair) == 2:
-                    # Twin found! Remove twins as possibilities from other cells in same row/column/region
-                    for cell_ in row:
-                        if isinstance(cell_, set) and cell_ != pair:
-                            cell_.difference_update(pair) # Remove pair elements from cell_
-
-def elim_triplets(board_repr):
-    """Identify three cells that share some combination of the same three possibilities and remove possibilities:
-        - i.e. remove triplet possibilities from other cells in same row, column or region
-    """
-
-    # Naked triplets
-    for row in board_repr:
-        # Track all pair and triple possibilities as potential members of a triplet
-        potential_triplets = []
-        for pair_or_triple in row:
-            if isinstance(pair_or_triple, set):
-                if len(pair_or_triple) == 2 or len(pair_or_triple) == 3:
-                    potential_triplets.append(pair_or_triple)
-        # Skip if there are less than three pairs and/or triples
-        if len(potential_triplets) < 3:
-            continue
-        else:
-        # Otherwise, test all combinations of pair/triple-cells for a potential triplet
-            for t1, t2, t3 in itertools.combinations(potential_triplets, 3):
-                union = t1 | t2 | t3
-                if len(union) == 3:
-                    # Triplet found! i.e. three possible numbers shared across three cells
-                    # Remove these numbers as possibilities from other cells in same row/column/region
-                    for cell_ in row:
-                        if isinstance(cell_, set) and not cell_.issubset(union):
-                            cell_.difference_update(union) # Remove union elements from cell_
-
-def elim_n_chain(board_repr, n):
+def elim_naked_chain(board_repr, n):
     """Identify n cells that share some combination of the same n possible integers
         - e.g. Simplest variation (n=2), two cells in same row have same two possible integers
     Remove those n possible integers from the other cells in the same row, column or region
     """
 
-    # Naked triplets
+    # Naked n-chain
     for row in board_repr:
-        # Track all pair and triple possibilities as potential members of a triplet
+        # Track all sets of size n or less as potential members of the chain
         potential_chain_members = []
         for chain_member in row:
             if isinstance(chain_member, set):
                 if len(chain_member) <= n:
                     potential_chain_members.append(chain_member)
-        # Skip if there are less than three pairs and/or triples
+        # Skip if there are less than n potential chain members
         if len(potential_chain_members) < n:
             continue
         else:
-        # Otherwise, test all combinations of pair/triple-cells for a potential triplet
+        # Otherwise, test all combinations of potential chain members (cells) for a naked chain
             for combo in itertools.combinations(potential_chain_members, n):
                 union = set().union(*combo) # Union all sets in the combination of cells
                 if len(union) == n:
                     # Chain found! i.e. n possible numbers shared across n cells
                     # Remove these numbers as possibilities from other cells in same row/column/region
-                    for cell_ in row:
-                        if isinstance(cell_, set) and not cell_.issubset(union):
-                            cell_.difference_update(union) # Remove union elements from cell_
+                    for cell in row:
+                        if isinstance(cell, set) and not cell.issubset(union):
+                            cell.difference_update(union) # Remove union elements from cell_
 
+def elim_hidden_chain(board_repr, n):
+    """Identify n numbers that must go in n cells and remove all other possibilities in those cells
+        - e.g. n=2 -> two integers are only in two cells. The other possibilities in those cells are removed
+    """
+    for row in board_repr:
+        # Track locations, i.e. indices, where each unsolved integer could potentially go in the row/column/region
+        number_locations = {}
+        for x, cell in enumerate(row):
+            if isinstance(cell, set):
+                for possibility in cell:
+                    number_locations.setdefault(possibility, set())
+                    number_locations[possibility].add(x)
+        # Skip if there are less than (or equal to) n unsolved integers in the row/column/region
+        if len(number_locations) <= n:
+            continue
+        else:
+        # Otherwise, test all combination of unsolved integers to find a hidden chain
+            for combo in itertools.combinations(number_locations.items(), n):
+                combo_numbers   = set(         [k for k, v in combo])
+                combo_locations = set().union(*[v for k, v in combo]) # Union all possible locations for this combo
+                if len(combo_locations) == n:
+                    # Hidden chain found! i.e. these n numbers must go in these n locations
+                    # Remove other numbers as possibilities from these locations
+                    for x, cell in enumerate(row):
+                        if x in combo_locations:
+                            cell.intersection_update(combo_numbers) # Only keep numbers in combo_numbers
+
+def old_hidden_twins(board):
+    """Identify twins (two numbers that must go in two cells) and remove possibilties:
+        - Other possibilities in the twin cells
+        - Twin possibilities from other cells in same row, column, and/or region
+    """
+    
+
+    # Hidden twins
+    for y, row in enumerate(board.rows):
+        # Track locations in the row where each unsolved integer could potentially go
+        locations = {num:set() for num in range(1,10)}
+        for x, cell in enumerate(row):
+            if isinstance(cell, set):
+                for possibility in cell:
+                    locations[possibility].add(x)
+
+        # Check if a number shares its two possible locations with another number
+        for num, locs in locations.items():
+            if len(locs) == 2:
+                # Check if there is another number with the same locations
+                count = 0
+                for value in locations.values():
+                    if locs == value:
+                        count +=1
+                if count == 2:
+                    for cell in row:
+                        if isinstance(cell, set) and locations[num] != locs:
+                            cell.discard(nums)
 
 # Dictionary that maps a Sudoku board stored as lists of rows, to a board that's lists of 3x3 regions
 # The transformation actually works in both directions:
@@ -392,7 +261,7 @@ def elim_n_chain(board_repr, n):
 ROWS_TO_REGIONS = {}
 for row_or_region in range(9):
     for cell in range(9):
-        ROWS_TO_REGIONS[(row_or_region, cell)] = (math.floor(row_or_region / 3) * 3 + math.floor(cell / 3), (row_or_region % 3) * 3 + (cell % 3))
+        ROWS_TO_REGIONS[(row_or_region, cell)] = ((row_or_region // 3) * 3 + (cell // 3), (row_or_region % 3) * 3 + (cell % 3))
 
 # Example of row-basis indices:
     # [0] [1] [2] [3] [4] [5] [6] [7] [8]
@@ -563,11 +432,15 @@ class SudokuPuzzle():
             fill_only_location(board)
 
             for n in range(2, 6):
-                elim_n_chain(board.rows, n)
-                elim_n_chain(board.cols, n)
-                elim_n_chain(board.regions, n)
+                elim_naked_chain(board.rows   , n)
+                elim_naked_chain(board.cols   , n)
+                elim_naked_chain(board.regions, n)
 
-            
+            for n in range(2, 6):
+                elim_hidden_chain(board.rows   , n)
+                elim_hidden_chain(board.cols   , n)
+                elim_hidden_chain(board.regions, n)
+
 
             self.total_loops += 1
 
@@ -629,11 +502,11 @@ class SudokuPuzzle():
                 self.pre_recursion_loops = self.total_loops
                 print('Got this far without trial and error:')
                 self.print_board(self.rows)
-                pp.pprint(self.rows)
-                print('break')
-                pp.pprint(self.cols)
-                print('break')
-                pp.pprint(self.regions)
+                #pp.pprint(self.rows)
+                #print('break')
+                #pp.pprint(self.cols)
+                #print('break')
+                #pp.pprint(self.regions)
                 print(f'Possibilities: {self.count_possibilities(self.rows)}')
                 print('Solving recursively using trial and error...')
                 solved = copy.deepcopy(self.recursive_solve(self))
@@ -661,6 +534,9 @@ medium = SudokuPuzzle(mediumBoard1)
 hard   = SudokuPuzzle(hardBoard1)
 evil   = SudokuPuzzle(evilBoard1)
 worlds = SudokuPuzzle(worldsHardestBoard)
+arto   = SudokuPuzzle(ArtoHardestBoard)
+slow   = SudokuPuzzle(slowestBoard)
+
 """
 easy.apply_strategies(easy)
 easy.print_board(easy.rows)
@@ -676,8 +552,10 @@ worlds.apply_strategies(worlds)
 worlds.print_board(worlds.rows)
 """
 
-easy  .solve()
-medium.solve()
-hard  .solve()
-evil  .solve()
+#easy  .solve()
+#medium.solve()
+#hard  .solve()
+#evil  .solve()
 worlds.solve()
+arto  .solve()
+slow  .solve()
