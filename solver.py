@@ -1,43 +1,24 @@
 #! python3
 """
-Sukdoku solver that does NOT need recursion -> no backtracking or trial and error.
+Sukdoku solver that does NOT need recursion for most puzzles -> no backtracking or trial and error.
 
 Solving strategies:
-    - elim_row(): eliminate possibilities based on existing numbers in the row
-    - elim_col(): eliminate possibilities based on existing numbers in the column
-    - elim_3x3(): eliminate possibilities based on existing numbers in the 3x3
-    - ...
-    - fill_board(): input a value in a cell if there is only one remaining possibility for that cell
+    - elim_placed_nums()    : eliminate possibilities based on solved numbers in the row, column or region
+    - fill_one_possibility(): fill cells with only 1 possible number remaining
+    - fill_only_location()  : fill a cell if it is the only cell in a row/col/region where it can go
+    - elim_naked_chain()    : eliminate possibilities based on n cells that share same n possible numbers
+    - elim_hidden_chain()   : eliminate possibilities based on n numbers that share the same n possible cell locations
+    - elim_line_in_region() : unsolved numbers within a row/column whose only possible locations are in the same region
+    - elim_region_in_line() : unsolved numbers within a region whose only possible locations are in the same row or column
+Note, recursion is used if other strategies fail.
 
 Class: SudokuBoard()
     Requires a Sudoku board (list of 9 lists of rows) to be passed as an argument at initiation
-    This class contains utility methods and the solve() method, which solves self.rows, self.cols, self.regions
+    .solve() method prints the solution using
 """
-
-# Import modules
-import copy, math, itertools, numpy
+import copy, itertools
 
 # Sample Sudoku boards
-slowestBoard = [[0, 0, 0, 0, 0, 6, 0, 0, 0],
-                [0, 5, 9, 0, 0, 0, 0, 0, 8],
-                [2, 0, 0, 0, 0, 8, 0, 0, 0],
-                [0, 4, 5, 0, 0, 0, 0, 0, 0],
-                [0, 0, 3, 0, 0, 0, 0, 0, 0],
-                [0, 0, 6, 0, 0, 3, 0, 5, 4],
-                [0, 0, 0, 3, 2, 5, 0, 0, 6],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0]]
-
-ArtoHardestBoard = [[0, 0, 5, 3, 0, 0, 0, 0, 0],
-                    [8, 0, 0, 0, 0, 0, 0, 2, 0],
-                    [0, 7, 0, 0, 1, 0, 5, 0, 0],
-                    [4, 0, 0, 0, 0, 5, 3, 0, 0],
-                    [0, 1, 0, 0, 7, 0, 0, 0, 6],
-                    [0, 0, 3, 2, 0, 0, 0, 8, 0],
-                    [0, 6, 0, 5, 0, 0, 0, 0, 9],
-                    [0, 0, 4, 0, 0, 0, 0, 3, 0],
-                    [0, 0, 0, 0, 0, 9, 7, 0, 0]]
-
 worldsHardestBoard = [[8, 0, 0, 0, 0, 0, 0, 0, 0],
                       [0, 0, 3, 6, 0, 0, 0, 0, 0],
                       [0, 7, 0, 0, 9, 0, 2, 0, 0],
@@ -89,23 +70,6 @@ easyBoard1 = [[7, 1, 0, 0, 0, 0, 8, 0, 5],
               [6, 0, 2, 0, 0, 0, 0, 5, 1]]
 
 # Functions for eliminating possibilities
-# Remember, a blank board is 9 lists of 9 sets, each containing the possible numbers 1 to 9
-
-# TO DO:
-# Sub group exclusion (remove from other 3x3 grid spaced if it has to go in a row)
-# DONE & DELETED Twins (remove other posibilities in the twin square, and the twins from other squares in row/col/3x3)
-    # Hidden twins didn't seem to make a difference but naked twins looks good
-# DONE & DELETED Triplets
-# DONE n-number chains
-# X-Wing (aka. box) for a box where two of the same numbers must be on opposite corners of an X-Wing
-    # Identified by finding two rows where a number has pairs on top of each other (same for columns)
-# Swordfish
-    # Identified by finding three rows where a number has pairs (same for columns); numbers in the linking columns (rows) can be eliminated
-# Alternate pairs - general rule for X-Wing and Swordfish
-    # Different colours in the same col/row/region allow for eliminating all others of the same number in that col/row/region
-# Alternate pairs (multi-colour) - eliminate numbers that are in the intersection of multi-coloured pairs)
-# Hook - [x,y][y,z][z,x] 3 pairs, two cells in the same row and two in cells in the same region
-    # Allows us to eliminate the cells in possibility from the intersect cell that is not in the same row/col
 
 def elim_placed_nums(board_repr): # Single board of any representation
     """Eliminate possibilities that have already occured in the same row/column/region (depending on representation passed)"""
@@ -121,7 +85,7 @@ def elim_placed_nums(board_repr): # Single board of any representation
                     return False
 
 def fill_one_possibility(board):
-    """Fill squares with only 1 possibility remaining"""
+    """Fill cells with only 1 possibility remaining"""
     
     for y, row in enumerate(board.rows):
         for x, col in enumerate(row):
@@ -129,7 +93,7 @@ def fill_one_possibility(board):
                 board.update(x, y, col.pop())
 
 def fill_only_location(board):
-    """Fill the only square in a row/col/region that has a set with the given number as a possibility"""
+    """Fill the only cell in a row/col/region that has a set with the given number as a possibility"""
 
     # Rows
     for y, row in enumerate(board.rows):
@@ -207,9 +171,9 @@ def elim_hidden_chain(board_repr, n):
         number_locations = {}
         for x, cell in enumerate(row):
             if isinstance(cell, set):
-                for possibility in cell:
-                    number_locations.setdefault(possibility, set())
-                    number_locations[possibility].add(x)
+                for unsolved_number in cell:
+                    number_locations.setdefault(unsolved_number, set())
+                    number_locations[unsolved_number].add(x)
         # Skip if there are less than (or equal to) n unsolved integers in the row/column/region
         if len(number_locations) <= n:
             continue
@@ -225,37 +189,97 @@ def elim_hidden_chain(board_repr, n):
                         if x in combo_locations:
                             cell.intersection_update(combo_numbers) # Only keep numbers in combo_numbers
 
-def old_hidden_twins(board):
-    """Identify twins (two numbers that must go in two cells) and remove possibilties:
-        - Other possibilities in the twin cells
-        - Twin possibilities from other cells in same row, column, and/or region
+def elim_line_in_region(board):
+    """Identify unsolved numbers within a row/column whose only two/three possible locations are within the same region
+        - Remove those numbers as possibilities from the other cells in the region 
     """
-    
-
-    # Hidden twins
     for y, row in enumerate(board.rows):
-        # Track locations in the row where each unsolved integer could potentially go
-        locations = {num:set() for num in range(1,10)}
+        # Track possible regions where each unsolved integer in the row could potentially go
+        number_regions = {}
         for x, cell in enumerate(row):
             if isinstance(cell, set):
-                for possibility in cell:
-                    locations[possibility].add(x)
+                for unsolved_number in cell:
+                    number_regions.setdefault(unsolved_number, set())
+                    number_regions[unsolved_number].add( ROWS_TO_REGIONS[ (y, x) ][0] ) # Identify region
 
-        # Check if a number shares its two possible locations with another number
-        for num, locs in locations.items():
-            if len(locs) == 2:
-                # Check if there is another number with the same locations
-                count = 0
-                for value in locations.values():
-                    if locs == value:
-                        count +=1
-                if count == 2:
-                    for cell in row:
-                        if isinstance(cell, set) and locations[num] != locs:
-                            cell.discard(nums)
+        for k, v in number_regions.items():
+            # Identify numbers whose possibilities are in the same region
+            if len(v) == 1:
+                region_index = v.pop()
+                for c, cell in enumerate(board.regions[ region_index ]):
+                    # Skip cells that are solved or are cells in the original row of interest:
+                    if isinstance(cell, int) or ROWS_TO_REGIONS[ (region_index, c) ][0] == y:
+                        continue
+                    # Otherwise, remove the number from other cells in the region
+                    else:
+                        cell.discard(k)
 
-# Dictionary that maps a Sudoku board stored as lists of rows, to a board that's lists of 3x3 regions
-# The transformation actually works in both directions:
+    for x, col in enumerate(board.cols):
+        # Track possible regions where each unsolved integer in the col could potentially go
+        number_regions = {}
+        for y, cell in enumerate(col):
+            if isinstance(cell, set):
+                for unsolved_number in cell:
+                    number_regions.setdefault(unsolved_number, set())
+                    number_regions[unsolved_number].add( ROWS_TO_REGIONS[ (y, x) ][0] ) # Identify region
+
+        for k, v in number_regions.items():
+            # Identify numbers whose possibilities are in the same region
+            if len(v) == 1:
+                region_index = v.pop()
+                for c, cell in enumerate(board.regions[ region_index ]):
+                    # Skip cells that are solved or are cells in the original col of interest:
+                    if isinstance(cell, int) or ROWS_TO_REGIONS[ (region_index, c) ][1] == x:
+                        continue
+                    # Otherwise, remove the number from other cells in the region
+                    else:
+                        cell.discard(k)
+
+def elim_region_in_line(board):
+    """Identify unsolved numbers within a region whose only two/three possible locations are in a single row or column
+        - Remove those numbers as possibilites from the rest of the respective row or column
+    """
+    for r, region in enumerate(board.regions):
+        # Track possible rows and columns where each unsolved integer could potentially go
+        number_rows = {}
+        number_cols = {}
+        for c, cell in enumerate(region):
+            if isinstance(cell, set):
+                for unsolved_number in cell:
+                    number_rows.setdefault(unsolved_number, set())
+                    number_cols.setdefault(unsolved_number, set())
+                    number_rows[unsolved_number].add( ROWS_TO_REGIONS[ (r, c) ][0] ) # Identify row index
+                    number_cols[unsolved_number].add( ROWS_TO_REGIONS[ (r, c) ][1] ) # Identify column index
+
+        for k, v in number_rows.items():
+            # Identify numbers whose possibilities are in the same row
+            if len(v) == 1:
+                row_index = v.pop()
+                for c, cell in enumerate(board.rows[ row_index ]):
+                    # Skip cells that are solved or are cells in the original region of interest:
+                    if isinstance(cell, int) or ROWS_TO_REGIONS[ (row_index, c) ][0] == r:
+                        continue
+                    # Otherwise, remove the number from other cells in the row
+                    else:
+                        cell.discard(k)
+
+                # Possibilities cannot also be in the same column
+                number_cols.pop(k, None)
+
+        for k, v in number_cols.items():
+            # Identify numbers whose possibilities are in the same column
+            if len(v) == 1:
+                col_index = v.pop()
+                for c, cell in enumerate(board.cols[ col_index ]):
+                    # Skip cells that are solved or are cells in the original region of interest:
+                    if isinstance(cell, int) or ROWS_TO_REGIONS[ (c, col_index) ][0] == r:
+                        continue
+                    # Otherwise, remove the number from other cells in the row
+                    else:
+                        cell.discard(k)
+
+# Dictionary that maps a Sudoku board stored as lists of rows, to a board stored as lists of 3x3 regions
+# The transformation actually works symmetrically in both directions:
     # Key: standard row-basis cell coordinates (y, x) -> Value: region-basis cell coordinates (region, cell)
     # Key: region-basis cell coordinates (region, cell) -> Value: standard row-basis cell coordinates (y, x)
 ROWS_TO_REGIONS = {}
@@ -271,12 +295,9 @@ for row_or_region in range(9):
     # [3] [4] [5]
     # [6] [7] [8]
 
-print(ROWS_TO_REGIONS)
-import pprint as pp
-
 # Create, track and solve the Sudoku board 
 class SudokuPuzzle():
-    """Input, track and solve a Sudoku board"""
+    """Input, track and solve a 9x9 Sudoku board"""
 
     def __init__(self, simple_board):
         # Save the original board state
@@ -301,10 +322,6 @@ class SudokuPuzzle():
                 self.rows[y][x] = col
                 self.cols[x][y] = col
                 self.regions[ ROWS_TO_REGIONS[(y, x)][0] ][ ROWS_TO_REGIONS[(y, x)][1] ] = col
-
-    @property
-    def board(self):
-        return [self.rows, self.cols, self.regions]
 
     def update(self, x, y, value):
         """Update a cell at indices (x, y) with a given value, across all three board representations
@@ -430,17 +447,16 @@ class SudokuPuzzle():
             # Apply following Sudoku strategies functions for eliminating possibilities
             fill_one_possibility(board)
             fill_only_location(board)
-
-            for n in range(2, 6):
-                elim_naked_chain(board.rows   , n)
-                elim_naked_chain(board.cols   , n)
-                elim_naked_chain(board.regions, n)
-
+            elim_line_in_region(board)
+            elim_region_in_line(board)
             for n in range(2, 6):
                 elim_hidden_chain(board.rows   , n)
                 elim_hidden_chain(board.cols   , n)
                 elim_hidden_chain(board.regions, n)
-
+            for n in range(2, 6):
+                elim_naked_chain(board.rows   , n)
+                elim_naked_chain(board.cols   , n)
+                elim_naked_chain(board.regions, n)
 
             self.total_loops += 1
 
@@ -488,7 +504,7 @@ class SudokuPuzzle():
     def solve(self):
         """Solve the Sudoku board stored in self.board"""
         
-        print("Starting board:")
+        print("\nStarting board:")
         self.print_board(self.rows)
 
         # Initiate tracking attributes to 0
@@ -502,12 +518,7 @@ class SudokuPuzzle():
                 self.pre_recursion_loops = self.total_loops
                 print('Got this far without trial and error:')
                 self.print_board(self.rows)
-                #pp.pprint(self.rows)
-                #print('break')
-                #pp.pprint(self.cols)
-                #print('break')
-                #pp.pprint(self.regions)
-                print(f'Possibilities: {self.count_possibilities(self.rows)}')
+                print(f'Possibilities remaining: {self.count_possibilities(self.rows)}')
                 print('Solving recursively using trial and error...')
                 solved = copy.deepcopy(self.recursive_solve(self))
                 # Update the current object instance with the solution
@@ -521,9 +532,9 @@ class SudokuPuzzle():
         if self.check_complete(self.rows) == True:
             self.print_board(self.rows)
             print('This solution is valid!')
-            print(f'Loops before recursion: {self.pre_recursion_loops}')
-            print(f'Recursion loops: {self.total_loops - self.pre_recursion_loops}')
-            print(f'Numbers of trials: {self.trials}')
+            print(f'Loops to solve: {self.total_loops}')
+            print(f'Loops during recursion: {self.total_loops - self.pre_recursion_loops}')
+            print(f'Numbers of guesses: {self.trials}')
         else:
             print('Check: Something is wrong.')
             self.print_board(self.rows)
@@ -534,28 +545,9 @@ medium = SudokuPuzzle(mediumBoard1)
 hard   = SudokuPuzzle(hardBoard1)
 evil   = SudokuPuzzle(evilBoard1)
 worlds = SudokuPuzzle(worldsHardestBoard)
-arto   = SudokuPuzzle(ArtoHardestBoard)
-slow   = SudokuPuzzle(slowestBoard)
 
-"""
-easy.apply_strategies(easy)
-easy.print_board(easy.rows)
-pp.pprint(easy.rows)
-
-medium.apply_strategies(medium)
-medium.print_board(medium.rows)
-hard.apply_strategies(hard)
-hard.print_board(hard.rows)
-evil.apply_strategies(evil)
-evil.print_board(evil.rows)
-worlds.apply_strategies(worlds)
-worlds.print_board(worlds.rows)
-"""
-
-#easy  .solve()
-#medium.solve()
-#hard  .solve()
-#evil  .solve()
+easy  .solve()
+medium.solve()
+hard  .solve()
+evil  .solve()
 worlds.solve()
-arto  .solve()
-slow  .solve()
