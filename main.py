@@ -2,10 +2,10 @@
 """
 Sukdoku solver that solves without backtracking (trial and error) unless needed
 
-See board.py      -> for details on the SudokuPuzzle object
-See strategies.py -> for details on non-recursive solving strategies
+See board_solver.py -> for details on the SudokuPuzzle object
+See strategies.py   -> for details on non-recursive solving strategies
 """
-from board import SudokuPuzzle
+from board_solver import SudokuPuzzle
 
 # Sample Sudoku boards
 worldsHardestBoard = [[8, 0, 0, 0, 0, 0, 0, 0, 0],

@@ -29,3 +29,9 @@ Zone refers to either a row, column, or 3x3 region
 ## Recursion strategy
 If human-like solving strategies fail, perform a depth first search for the solution using recursion + trial and error.
 Each guess will be placed in the unsolved cell with the least possible number of solutions.
+
+## Python scripts
+* `strategies.py` implements the human-like solving strategies
+* `board_solver.py` contains the Sudoku object and uses the above strategies + recursion to solve it
+* `main.py` solves a few example Sudoku boards of varying difficulty
+* `solve_random_online_board.py` scrapes and solves a randomly generated Sudoku board of a given difficulty (from websudoku.com)
