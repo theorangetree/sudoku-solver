@@ -55,7 +55,7 @@ def check_error(board):
     return False
 
 def check_complete(board):
-    """Check if the solution is valid"""
+    """Check if board contains valid solution"""
     # Check for repeating numbers in rows and columns
     if check_error(board) is True:
         return False
@@ -186,34 +186,42 @@ class SudokuPuzzle():
                 # Error found in the solution
                 return False
 
-    def recursive_solve(self, board, unsolved_min_heap = None):
-        """Use recursion (aka. DFS / trial and error) to find a solution"""        
+    def recursive_solve(self, board):
+        """Use recursion (aka. DFS / trial and error) to find a solution
+        Guesses in cells with the least possibilities first
+        """
 
+        # Sort unsolved cells by least number of possibilities
+        unsolved_cells = []
         for y, row in enumerate(board.rows):
-            for x, col in enumerate(row):
-                if isinstance(col, set):
-                    # try each value in the set of possible numbers for a cell
-                    for value in col:
-                        print(f'{"*"*10} Trying {value} at position ({x+1},{9-y}) {"*"*10}')
-                        temp_board = copy.deepcopy(board)
-                        temp_board.update(x, y, value)
-                        self.trials += 1
+            for x, cell in enumerate(row):
+                if isinstance(cell, set):
+                    unsolved_cells.append( ( cell, y, x ) )
+        unsolved_cells.sort(key=lambda x: len(x[0]))
 
-                        if self.apply_strategies(temp_board) is False:
-                            # if error is found, try next number in the set
-                            continue
-                        elif check_complete(temp_board) is True:
-                            # if solution is found, return the board
-                            return temp_board
-                        else:
-                            complete_board = self.recursive_solve(temp_board)
-                            if complete_board is not False:
-                                # recursiveSolve() either returns False or the completed board
-                                # if it does not return False, we have found the solution!
-                                return complete_board
+        # Try possibilities
+        for cell, y, x in unsolved_cells:
+            for value in cell:
+                print(f'{"*"*10} Trying {value} at position ({x+1},{9-y}) {"*"*10}')
+                temp_board = copy.deepcopy(board)
+                temp_board.update(x, y, value)
+                self.trials += 1
 
-                    # if no possible values in the set works, this branch of the recursion has failed
-                    return False
+                if self.apply_strategies(temp_board) is False:
+                    # If error is found, try next number in the set
+                    continue
+                elif check_complete(temp_board) is True:
+                    # If solution is found, return the board
+                    return temp_board
+                else:
+                    complete_board = self.recursive_solve(temp_board)
+                    if complete_board is not False:
+                        # recursive_solve() either returns False or the completed board
+                        # If it does not return False, we have found the solution!
+                        return complete_board
+
+            # If no possible values in the set works, this branch of the recursion has failed
+            return False
 
     def solve(self):
         """Solve the Sudoku board stored in self.board"""

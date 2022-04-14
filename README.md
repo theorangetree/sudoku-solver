@@ -1,6 +1,7 @@
 # Sudoku solver
+### Background
 I attempted to make a Sudoku solver that doesn't use trial and error.
-Eventually, I learned that this is too difficult for the hardest puzzles.
+Eventually, I gave up and used recursion.
 
 ### Performance
 Currently, the solver can solve most puzzles without guessing.
@@ -15,16 +16,17 @@ Second, link the original input to 3 representations of the same board:
 * 9 lists of columns
 * 9 lists of 3x3 regions
 
-### Human-like strategies
-* Same zone -> eliminate possibilities based on what is already soved in their zone
-* Only possibility -> fill cells with sets of size 1, i.e. one possible number
-* Only location -> fill cells if it is the only place where a number can go in its zone
-* Naked chain -> identify when n cells (in a zone) share the same set of n possible numbers
-* Hidden chain -> identify when n possible numbers share the same n possible cell locations in a zone
-* Line in region -> identify unsolved numbers within a row/column whose only possible locations are in the same region
-* Region in line -> identify unsolved numbers within a region whose only possible locations are in the same row or column
+### Solving strategies
+* Same zone: eliminate possibilities based on what is already soved in their zone
+* Only possibility: fill cells with sets of size 1, i.e. one possible number
+* Only location: fill cells if it is the only place where a number can go in its zone
+* Naked chain: identify when n cells (in a zone) share the same set of n possible numbers
+* Hidden chain: identify when n possible numbers share the same n possible cell locations in a zone
+* Line in region: identify unsolved numbers within a row/column whose only possible locations are in the same region
+* Region in line: identify unsolved numbers within a region whose only possible locations are in the same row or column
 
 Zone refers to either a row, column, or 3x3 region
 
 ### Recursion strategy
-If the human-like strategies fail, perform a depth first search for the solution using recursion.
+If human-like strategies fail, perform a depth first search for the solution using recursion + trial and error.
+Each guess will be placed in the unsolved cell with the least possible number of solutions.
