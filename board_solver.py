@@ -250,3 +250,5 @@ class SudokuPuzzle():
         print(f'Loops to solve: {self.total_loops}')
         print(f'Loops during recursion: {self.total_loops - self.pre_recursion_loops}')
         print(f'Numbers of guesses: {self.trials}')
+
+        return self.rows

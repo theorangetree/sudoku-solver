@@ -1,10 +1,10 @@
 # Sudoku solver
-I attempted to make a Sudoku solver that doesn't use trial and error.
-Eventually, I gave up and used recursion.
+I attempted to make a Sudoku solver that doesn't use trial and error.<br/>
+But then I gave up and used recursion.
 
 ## Performance
-Currently, the solver can solve most puzzles without guessing.
-However, if the solver gets stuck, it uses recursion to find the final answer.
+Currently, the solver can solve almost all puzzles without guessing.
+However, if it gets stuck, the recursion kicks in.
 
 ## Setting up the 9x9 grid
 First, the board takes as input a list of 9 lists, each with 9 cells.
@@ -30,8 +30,10 @@ Zone refers to either a row, column, or 3x3 region
 If human-like solving strategies fail, perform a depth first search for the solution using recursion + trial and error.
 Each guess will be placed in the unsolved cell with the least possible number of solutions.
 
-## Python scripts
+## Python script descriptions
 * `strategies.py` implements the human-like solving strategies
 * `board_solver.py` contains the Sudoku object and uses the above strategies + recursion to solve it
-* `main.py` solves a few example Sudoku boards of varying difficulty
-* `solve_random_online_board.py` scrapes and solves a randomly generated Sudoku board of a given difficulty (from websudoku.com)
+* `solve_given_boards.py` solves some preset Sudoku boards written in the python file
+* `solve_webscrape_bs4_websudoku.py` scrapes and solves a randomly generated Sudoku board (from websudoku.com)
+* `solve_webscrape_selenium_websudoku.py` solves a randomly generated Sudoku board in a Chrome web driver using Selenium (from websudoku.com)
+* `solve_webscrape_selenium_sudoku.py` solves a randomly generated Sudoku board in a Chrome web driver using Selenium (from sudoku.com)
